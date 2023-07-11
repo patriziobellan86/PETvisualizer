@@ -4,7 +4,7 @@ from tkinter import ttk
 from tkinter import filedialog
 import networkx as nx
 import ast
-from PET_TEST.utility import readjson
+from utility import readjson
 import matplotlib
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk

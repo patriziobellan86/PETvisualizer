@@ -1,16 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-https://stackoverflow.com/questions/31440167/placing-plot-on-tkinter-main-window-in-python
+@author: Patrizio Bellan
+@contact: patrizio.bellan@gmail.com
+@license MIT
+@summary: This file contains the GUI for the PET Visualizer
 
-Created on Fri Jan 15 15:45:32 2021
-
-@author: patrizio
-https://stackoverflow.com/questions/49121492/embedding-matplotlib-into-tkinter-canvas-opens-two-windows
-
-https://matplotlib.org/stable/gallery/user_interfaces/embedding_in_tk_sgskip.html
-
-https://stackoverflow.com/questions/4981815/how-to-remove-lines-in-a-matplotlib-plot
 """
 from copy import deepcopy
 import tkinter as tk
@@ -19,8 +14,8 @@ import tkinter.ttk as ttk
 import tkinter.font as tkFont
 from collections import defaultdict
 from tkinter import filedialog as fd
-from PET_TEST.ExperimentLabels import *
-from PET_TEST.utility import readjson
+from Labels import *
+from utility import readjson
 import networkx as nx
 import json
 
@@ -28,7 +23,7 @@ seed = 23
 import random
 from CreateProcessGraph import CreateGraph
 from ShowProcessGraph import ShowGraphGUI, ShowGraphGUIwithData
-from PET_TEST.utility import savejson, readjson
+from utility import savejson, readjson
 
 from petreader.TokenClassification import TokenClassification
 from petreader.RelationsExtraction import RelationsExtraction
@@ -117,9 +112,8 @@ class GenerateGoldStandard(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.parent = parent
         self.parent.geometry('1450x1100')
-        self.parent.title('PETv11 GoldStandard Annotations')
-        self.parent.tk.call('wm', 'iconphoto', self.parent._w, tk.PhotoImage(file='icons/wolfgold.png'))
-
+        self.parent.title('PET Visualizer')
+        
         # init variables
         self.__init__varialbles__()
 
@@ -197,11 +191,6 @@ class GenerateGoldStandard(tk.Frame):
                 self.pet_relations[self.current_doc_name] = self.document_relations
 
     def _load_pet_dataset(self):
-        # for doc_name in tqdm([
-        #                              'doc-1.1']):  # , 'doc-1.2', 'doc-1.3']): #self.re.GetDocumentNames(), desc='loading pet dataset', dynamic_ncols=True):
-        #
-        #
-        #     print(doc_name)
         for doc_name in tqdm(self.re.GetDocumentNames(), desc='loading pet dataset', dynamic_ncols=True):
             doc_id = self.re.GetDocumentNumber(doc_name)
             # get data

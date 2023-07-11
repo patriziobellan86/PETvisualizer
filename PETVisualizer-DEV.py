@@ -1,37 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-https://stackoverflow.com/questions/31440167/placing-plot-on-tkinter-main-window-in-python
+@author: Patrizio Bellan
+@contact: patrizio.bellan@gmail.com
+@license MIT
+@summary: This file contains the GUI for the PET Visualizer
 
-Created on Fri Jan 15 15:45:32 2021
-
-@author: patrizio
-https://stackoverflow.com/questions/49121492/embedding-matplotlib-into-tkinter-canvas-opens-two-windows
-
-https://matplotlib.org/stable/gallery/user_interfaces/embedding_in_tk_sgskip.html
-
-https://stackoverflow.com/questions/4981815/how-to-remove-lines-in-a-matplotlib-plot
 """
+
 from copy import deepcopy
 import tkinter as tk
 import tkinter.messagebox
 import tkinter.ttk as ttk
 import tkinter.font as tkFont
 from collections import defaultdict
-
-from PET_TEST.ExperimentLabels import *
-from PET_TEST.utility import readjson
+from tkinter import filedialog
+from Labels import *
+from utility import readjson
 import networkx as nx
+import json
 
+seed = 23
+import random
 from CreateProcessGraph import CreateGraph
 from ShowProcessGraph import ShowGraphGUI, ShowGraphGUIwithData
-from PET_TEST.utility import savejson, readjson
+from utility import savejson, readjson
 
 from petreader.TokenClassification import TokenClassification
 from petreader.RelationsExtraction import RelationsExtraction
 from petreader.labels import *
 from tqdm import tqdm
 from itertools import combinations
+import json
+import random
+
+random.seed(23)
 
 MARK_COLORS = {
         ACTIVITY:                       'dark green',
@@ -66,6 +69,7 @@ RE_LABELS = [USES, FURTHER_SPECIFICATION, ACTOR_PERFORMER, ACTOR_RECIPIENT, FLOW
 RE_LABELS_BEHAVIORAL = [FLOW]
 RE_LABELS_GATEWAY = [FLOW, SAME_GATEWAY]
 
+
 def simplify_graph_with_predicate(G: nx.Graph, node_removal_predicate: callable):
     '''
     Loop over the graph until all nodes that match the supplied predicate
@@ -85,14 +89,14 @@ def simplify_graph_with_predicate(G: nx.Graph, node_removal_predicate: callable)
 
                     for in_src, _ in in_edges_containing_node:
                         for _, out_dst in out_edges_containing_node:
-                            g0.add_edge(in_src, out_dst, attrs={'type':FLOW, 'label':FLOW})
+                            g0.add_edge(in_src, out_dst, attrs={'type': FLOW, 'label': FLOW})
 
                 else:
                     edges_containing_node = g.edges(node, data=True)
                     dst_to_link = [e[1] for e in edges_containing_node]
                     dst_pairs_to_link = list(combinations(dst_to_link, r=2))
                     for pair in dst_pairs_to_link:
-                        g0.add_edge(pair[0], pair[1], attrs={'type':FLOW, 'label':FLOW})
+                        g0.add_edge(pair[0], pair[1], attrs={'type': FLOW, 'label': FLOW})
 
                 g0.remove_node(node)
                 break
@@ -100,7 +104,7 @@ def simplify_graph_with_predicate(G: nx.Graph, node_removal_predicate: callable)
     return g
 
 
-class GenerateGoldStandard(tk.Frame):
+class PETVisualizer(tk.Frame):
     pe_labels_dict_plot = {k: k for k in PE_LABELS}
     SENTENCE_OFFSET = 60
     WORD_OFFSET = 20
@@ -109,9 +113,8 @@ class GenerateGoldStandard(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.parent = parent
         self.parent.geometry('1450x1100')
-        self.parent.title('PETv11 GoldStandard Annotations')
-        self.parent.tk.call('wm', 'iconphoto', self.parent._w, tk.PhotoImage(file='icons/wolfgold.png'))
-
+        self.parent.title('PET Visualizer')
+        
         # init variables
         self.__init__varialbles__()
 
@@ -189,12 +192,7 @@ class GenerateGoldStandard(tk.Frame):
                 self.pet_relations[self.current_doc_name] = self.document_relations
 
     def _load_pet_dataset(self):
-        # for doc_name in tqdm([
-        #                              'doc-1.1']):  # , 'doc-1.2', 'doc-1.3']): #self.re.GetDocumentNames(), desc='loading pet dataset', dynamic_ncols=True):
-        #
-        #
-        #     print(doc_name)
-        for doc_name in tqdm(self.re.GetDocumentNames(), desc = 'loading pet dataset', dynamic_ncols = True):
+        for doc_name in tqdm(self.re.GetDocumentNames(), desc='loading pet dataset', dynamic_ncols=True):
             doc_id = self.re.GetDocumentNumber(doc_name)
             # get data
             doc_data = self.re.GetRelations(doc_id)
@@ -425,14 +423,13 @@ class GenerateGoldStandard(tk.Frame):
                   text='Save JSON DFG for In-context Exp.',
                   command=self._save_json_dfg_relations).pack(side='top', fill='x')
 
-
         tk.Button(frmlbl_graph,
                   text='Show DFG for In-context Exp.',
                   command=self._show_dfg_graph_for_experiments).pack(side='top', fill='x')
 
-        tk.Button(frmlbl_graph, text='generate graphs', command=self._generate_all_graphs_nx).pack()
-        tk.Button(frmlbl_graph, text='generate fine-tune-data', command=self._generate_all_graphs_nxELEREL).pack()
-        tk.Button(frmlbl_graph, text='generate fine-tune-dfg-data', command=self._generate_fine_tune_dfg_data).pack()
+        # tk.Button(frmlbl_graph, text='generate graphs', command=self._generate_all_graphs_nx).pack()
+        # tk.Button(frmlbl_graph, text='generate fine-tune-data', command=self._generate_all_graphs_nxELEREL).pack()
+        # tk.Button(frmlbl_graph, text='generate fine-tune-dfg-data', command=self._generate_fine_tune_dfg_data).pack()
 
         ####### lateral frame #####
         self.lateral_frame = tk.Frame(self.Frame)
@@ -492,22 +489,22 @@ class GenerateGoldStandard(tk.Frame):
         tk.Label(frm_end, text='end').pack(side='left')
         tk.Entry(frm_end, textvariable=self.pe_end_val).pack(side='left')
 
-        ttk.Separator(frm_entities, orient='horizontal').pack(fill='x', pady=(10, 5))
-        tk.Button(frm_entities,  # self.lateral_frame,
-                  text='Create New Annotation',
-                  command=self.CreateNewAnnotation).pack(side='top', fill='x', expand=True)
-        tk.Button(frm_entities,  # self.lateral_frame,
-                  text='Show temp Annotation',
-                  command=self.ShowTempAnnotation).pack(side='top', fill='x', expand=True)
-
-        tk.Button(frm_entities,  # self.lateral_frame,
-                  text='Add Annotation',
-                  command=self.AddEntityAnnotation).pack(side='top', fill='x', expand=True)
-
-        ttk.Separator(frm_entities, orient='horizontal').pack(fill='x', pady=(10, 5))
-        tk.Button(frm_entities,  # self.lateral_frame,
-                  text='Delete Annotation',
-                  command=self.DeleteEntityAnnotation).pack(side='top', fill='x', expand=True)
+        # ttk.Separator(frm_entities, orient='horizontal').pack(fill='x', pady=(10, 5))
+        # tk.Button(frm_entities,  # self.lateral_frame,
+        #           text='Create New Annotation',
+        #           command=self.CreateNewAnnotation).pack(side='top', fill='x', expand=True)
+        # tk.Button(frm_entities,  # self.lateral_frame,
+        #           text='Show temp Annotation',
+        #           command=self.ShowTempAnnotation).pack(side='top', fill='x', expand=True)
+        # 
+        # tk.Button(frm_entities,  # self.lateral_frame,
+        #           text='Add Annotation',
+        #           command=self.AddEntityAnnotation).pack(side='top', fill='x', expand=True)
+        # 
+        # ttk.Separator(frm_entities, orient='horizontal').pack(fill='x', pady=(10, 5))
+        # tk.Button(frm_entities,  # self.lateral_frame,
+        #           text='Delete Annotation',
+        #           command=self.DeleteEntityAnnotation).pack(side='top', fill='x', expand=True)
 
         # RELATIONS ##
         frm_rels = tk.Frame(notebooklateral)
@@ -519,8 +516,6 @@ class GenerateGoldStandard(tk.Frame):
         frm_relations = tk.Frame(frm_rels)  # self.lateral_frame)
         frm_relations.pack(side='top', expand=True, fill='both')
 
-
-
         frm_relations_lst = tk.Frame(frm_relations)
         frm_relations_lst.pack(side='top', expand=True, fill='both')
         self.lst_relations = tk.Listbox(frm_relations_lst,
@@ -528,7 +523,7 @@ class GenerateGoldStandard(tk.Frame):
                                         exportselection=False,
                                         width=65)
         self.lst_relations.pack(side='left')
-        self._scrollbar_ = tk.Scrollbar(frm_relations_lst, orient = tk.VERTICAL)
+        self._scrollbar_ = tk.Scrollbar(frm_relations_lst, orient=tk.VERTICAL)
         self._scrollbar_.pack(side='right', fill='y')
         self.lst_relations.config(yscrollcommand=self._scrollbar_.set)
         self._scrollbar_.config(command=self.lst_relations.yview)
@@ -557,7 +552,7 @@ class GenerateGoldStandard(tk.Frame):
                                         values=RE_LABELS,
                                         state='readonly')
         self.cmb_re_type.pack(side='top', fill='x', expand=True)
-        self.cmb_re_type.bind("<<ComboboxSelected>>", self.__re_type_changed)
+        # self.cmb_re_type.bind("<<ComboboxSelected>>", self.__re_type_changed)
         #  rel target
         frm_rel_target = tk.Frame(frm_relations)
         frm_rel_target.pack(side='top', fill='x', expand=True)
@@ -567,23 +562,23 @@ class GenerateGoldStandard(tk.Frame):
                                           # values=self.lst_entities.get(0, 'end'),
                                           state='readonly')
         self.cmb_re_target.pack(side='top', fill='x', expand=True)
-        self.cmb_re_target.bind("<<ComboboxSelected>>", self.re_target_Changed)
+        # self.cmb_re_target.bind("<<ComboboxSelected>>", self.re_target_Changed)
         frm_rels_op = tk.Frame(frm_relations)
         frm_rels_op.pack(side='top', fill='x', expand=True)
 
-        ttk.Separator(frm_rels_op, orient='horizontal').pack(fill='x', pady=(10, 5))
-        tk.Button(frm_rels_op,  # self.lateral_frame,
-                  text='Create New Annotation',
-                  command=self.CreateNewRelationAnnotation).pack(side='top', fill='x', expand=True)
-
-        tk.Button(frm_rels_op,  # self.lateral_frame,
-                  text='Add Annotation',
-                  command=self.AddRelationAnnotation).pack(side='top', fill='x', expand=True)
-
-        ttk.Separator(frm_rels_op, orient='horizontal').pack(fill='x', pady=(10, 5))
-        tk.Button(frm_rels_op,  # self.lateral_frame,
-                  text='Delete Annotation',
-                  command=self.DeleteRelationAnnotation).pack(side='top', fill='x', expand=True)
+        # ttk.Separator(frm_rels_op, orient='horizontal').pack(fill='x', pady=(10, 5))
+        # tk.Button(frm_rels_op,  # self.lateral_frame,
+        #           text='Create New Annotation',
+        #           command=self.CreateNewRelationAnnotation).pack(side='top', fill='x', expand=True)
+        # 
+        # tk.Button(frm_rels_op,  # self.lateral_frame,
+        #           text='Add Annotation',
+        #           command=self.AddRelationAnnotation).pack(side='top', fill='x', expand=True)
+        # 
+        # ttk.Separator(frm_rels_op, orient='horizontal').pack(fill='x', pady=(10, 5))
+        # tk.Button(frm_rels_op,  # self.lateral_frame,
+        #           text='Delete Annotation',
+        #           command=self.DeleteRelationAnnotation).pack(side='top', fill='x', expand=True)
 
         #####
         notebooklateral.add(frm_ents, text='Entities')
@@ -651,30 +646,30 @@ class GenerateGoldStandard(tk.Frame):
                                      y1,
                                      outline='black')
 
-    def DrawTemporaryRelation(self):
-        if self.re_source.get() and self.re_target.get() and self.re_type.get():
-            self.__draw_annotation()
-
-            source_index = int(self.re_source.get().split("|")[0])
-            source = self.document_entities[source_index]
-            target_index = int(self.re_target.get().split("|")[0])
-            target = self.document_entities[target_index]
-
-            self.HighlightRelationElement(source, '-- source --')
-            self.HighlightRelationElement(target, '-- target --')
-            #  check relation type between source and target
-
-            self.__draw_single_relaton(
-                              source_n_sent=source[1][SOURCE_SENTENCE_ID],
-                              source_index_begin=source[1][SOURCE_HEAD_TOKEN_ID],
-                              source_index_end=source[1][SOURCE_HEAD_TOKEN_ID]+len(source[1][SOURCE_ENTITY])-1,
-
-                              relation_type=self.re_type.get(),
-                              # target_pe_type,
-                              target_n_sent=target[1][SOURCE_SENTENCE_ID],
-                              target_index_begin=target[1][SOURCE_HEAD_TOKEN_ID],
-                              target_index_end=target[1][SOURCE_HEAD_TOKEN_ID]+len(target[1][SOURCE_ENTITY])-1,
-                              gold_or_temp='temp')
+    # def DrawTemporaryRelation(self):
+    #     if self.re_source.get() and self.re_target.get() and self.re_type.get():
+    #         self.__draw_annotation()
+    # 
+    #         source_index = int(self.re_source.get().split("|")[0])
+    #         source = self.document_entities[source_index]
+    #         target_index = int(self.re_target.get().split("|")[0])
+    #         target = self.document_entities[target_index]
+    # 
+    #         self.HighlightRelationElement(source, '-- source --')
+    #         self.HighlightRelationElement(target, '-- target --')
+    #         #  check relation type between source and target
+    # 
+    #         self.__draw_single_relaton(
+    #                 source_n_sent=source[1][SOURCE_SENTENCE_ID],
+    #                 source_index_begin=source[1][SOURCE_HEAD_TOKEN_ID],
+    #                 source_index_end=source[1][SOURCE_HEAD_TOKEN_ID] + len(source[1][SOURCE_ENTITY]) - 1,
+    # 
+    #                 relation_type=self.re_type.get(),
+    #                 # target_pe_type,
+    #                 target_n_sent=target[1][SOURCE_SENTENCE_ID],
+    #                 target_index_begin=target[1][SOURCE_HEAD_TOKEN_ID],
+    #                 target_index_end=target[1][SOURCE_HEAD_TOKEN_ID] + len(target[1][SOURCE_ENTITY]) - 1,
+    #                 gold_or_temp='temp')
 
     def _fill_cmb_rel_type(self):
         #  get type of the source element
@@ -706,73 +701,73 @@ class GenerateGoldStandard(tk.Frame):
         else:
             self.cmb_re_type['values'] = ''
 
-    def __re_type_changed(self, *event):
-        if self.re_type.get():
-            allowed_types = RE_LABELS_DICT_ALLOWED_TYPES[self.re_type.get()]
-            target_vals = list()
+    # def __re_type_changed(self, *event):
+    #     if self.re_type.get():
+    #         allowed_types = RE_LABELS_DICT_ALLOWED_TYPES[self.re_type.get()]
+    #         target_vals = list()
+    # 
+    #         for n_item, item in enumerate(self.document_entities):
+    #             if item[0] in allowed_types:
+    #                 target_vals.append(f"{n_item}| {item[0]}| {item[1][SOURCE_ENTITY]}")
+    #         self.cmb_re_target['values'] = target_vals
+    # 
+    #         try:
+    #             self.cmb_re_target.set(self.cmb_re_target['values'][0])
+    #         except IndexError:
+    #             # does not exist an entity
+    #             self.cmb_re_target.set('')
 
-            for n_item, item in enumerate(self.document_entities):
-                if item[0] in allowed_types:
-                    target_vals.append(f"{n_item}| {item[0]}| {item[1][SOURCE_ENTITY]}")
-            self.cmb_re_target['values'] = target_vals
+    # def re_target_Changed(self, *event):
+    #     # self.relation_is_changed = True
+    #     self.DrawTemporaryRelation()
 
-            try:
-                self.cmb_re_target.set(self.cmb_re_target['values'][0])
-            except IndexError:
-                # does not exist an entity
-                self.cmb_re_target.set('')
+    # def DeleteRelationAnnotation(self):
+    #     if self.lst_relations.curselection():
+    #         rel = self.document_relations[self.lst_relations.curselection()[0]]
+    #         self.document_relations.remove(rel)
+    #         self.__fill_relation_list(self.document_relations)
+    #         self.__draw_annotation()
 
-    def re_target_Changed(self, *event):
-        # self.relation_is_changed = True
-        self.DrawTemporaryRelation()
+    # def CreateNewRelationAnnotation(self):
+    #     source_vals = list()
+    #     for n_item, item in enumerate(self.document_entities):
+    #         if item[0] in BEHAVIORAL_ELEMENTS:
+    #             source_vals.append(f"{n_item}| {item[0]}| {item[1][SOURCE_ENTITY]}")
+    #     self.cmb_re_source['values'] = source_vals
+    # 
+    #     self.cmb_re_source.set(self.cmb_re_source['values'][0])
+    #     self.cmb_re_type.set('')
+    #     self.cmb_re_target.set('')
+    #     self.cmb_re_target['values'] = []
 
-    def DeleteRelationAnnotation(self):
-        if self.lst_relations.curselection():
-            rel = self.document_relations[self.lst_relations.curselection()[0]]
-            self.document_relations.remove(rel)
-            self.__fill_relation_list(self.document_relations)
-            self.__draw_annotation()
-
-    def CreateNewRelationAnnotation(self):
-        source_vals = list()
-        for n_item, item in enumerate(self.document_entities):
-            if item[0] in BEHAVIORAL_ELEMENTS:
-                source_vals.append(f"{n_item}| {item[0]}| {item[1][SOURCE_ENTITY]}")
-        self.cmb_re_source['values'] = source_vals
-
-        self.cmb_re_source.set(self.cmb_re_source['values'][0])
-        self.cmb_re_type.set('')
-        self.cmb_re_target.set('')
-        self.cmb_re_target['values'] = []
-
-    def AddRelationAnnotation(self):
-        rel_type = self.re_type.get()
-        source_index = int(self.re_source.get().split('|')[0])
-        source = self.document_entities[source_index]
-        target_index = int(self.re_target.get().split('|')[0])
-        target = self.document_entities[target_index]
-
-        relation = ({SOURCE_ENTITY:        source[1][SOURCE_ENTITY],
-                     SOURCE_ENTITY_TYPE:   source[0],
-                     SOURCE_SENTENCE_ID:   source[1][SOURCE_SENTENCE_ID],
-                     SOURCE_HEAD_TOKEN_ID: source[1][SOURCE_HEAD_TOKEN_ID],
-
-                     TARGET_ENTITY:        target[1][SOURCE_ENTITY],
-                     TARGET_ENTITY_TYPE:   target[0],
-                     TARGET_SENTENCE_ID:   target[1][SOURCE_SENTENCE_ID],
-                     TARGET_HEAD_TOKEN_ID: target[1][SOURCE_HEAD_TOKEN_ID]
-                     }, self.re_type.get())
-        self.document_relations.append(relation)
-
-        # sort relation and reload lst_relations
-        sorted_relations = sorted(self.document_relations,
-                                  key=lambda x: (
-                                          x[0][SOURCE_SENTENCE_ID], x[0][SOURCE_HEAD_TOKEN_ID],
-                                          x[0][TARGET_SENTENCE_ID],
-                                          x[0][TARGET_HEAD_TOKEN_ID]))
-        self.document_relations = sorted_relations
-        self.__fill_relation_list(sorted_relations)
-        self.__draw_annotation()
+    # def AddRelationAnnotation(self):
+    #     rel_type = self.re_type.get()
+    #     source_index = int(self.re_source.get().split('|')[0])
+    #     source = self.document_entities[source_index]
+    #     target_index = int(self.re_target.get().split('|')[0])
+    #     target = self.document_entities[target_index]
+    # 
+    #     relation = ({SOURCE_ENTITY:        source[1][SOURCE_ENTITY],
+    #                  SOURCE_ENTITY_TYPE:   source[0],
+    #                  SOURCE_SENTENCE_ID:   source[1][SOURCE_SENTENCE_ID],
+    #                  SOURCE_HEAD_TOKEN_ID: source[1][SOURCE_HEAD_TOKEN_ID],
+    # 
+    #                  TARGET_ENTITY:        target[1][SOURCE_ENTITY],
+    #                  TARGET_ENTITY_TYPE:   target[0],
+    #                  TARGET_SENTENCE_ID:   target[1][SOURCE_SENTENCE_ID],
+    #                  TARGET_HEAD_TOKEN_ID: target[1][SOURCE_HEAD_TOKEN_ID]
+    #                  }, self.re_type.get())
+    #     self.document_relations.append(relation)
+    # 
+    #     # sort relation and reload lst_relations
+    #     sorted_relations = sorted(self.document_relations,
+    #                               key=lambda x: (
+    #                                       x[0][SOURCE_SENTENCE_ID], x[0][SOURCE_HEAD_TOKEN_ID],
+    #                                       x[0][TARGET_SENTENCE_ID],
+    #                                       x[0][TARGET_HEAD_TOKEN_ID]))
+    #     self.document_relations = sorted_relations
+    #     self.__fill_relation_list(sorted_relations)
+    #     self.__draw_annotation()
 
     def __draw_single_relaton(self,
 
@@ -825,95 +820,95 @@ class GenerateGoldStandard(tk.Frame):
             canvas_relation_arc_label = None
         return canvas_relation_arc, canvas_relation_arc_label
 
-    def AddEntityAnnotation(self):
+    # def AddEntityAnnotation(self):
+    # 
+    #     doc_id = self.re.GetDocumentNumber(self.current_doc_name)
+    #     offset_y = self.SENTENCE_OFFSET
+    #     text = self.re.GetSentencesTokens(doc_id)
+    # 
+    #     entity_type = self.pe_type.get()
+    #     entity = {SOURCE_ENTITY_TYPE:   self.pe_type.get(),
+    #               SOURCE_SENTENCE_ID:   self.pe_n_sent_val.get(),
+    #               SOURCE_HEAD_TOKEN_ID: self.pe_begin_val.get(),
+    #               SOURCE_ENTITY:        text[self.pe_n_sent_val.get()][self.pe_begin_val.get():self.pe_end_val.get()]}
+    #     entity_text = f"{entity[SOURCE_ENTITY_TYPE]}| {' '.join(entity[SOURCE_ENTITY])}"
+    # 
+    #     if not (entity_type, entity) in self.document_entities:
+    #         self.lst_entities.insert('end', entity_text)
+    #         # add element to doc_and_pet
+    #         self.document_entities.append((entity_type, entity))
+    # 
+    #         #  sort entities and reload list
+    #         sorted_entities = sorted(self.document_entities,
+    #                                  key=lambda x: (
+    #                                          x[1][SOURCE_SENTENCE_ID], x[1][SOURCE_HEAD_TOKEN_ID]))
+    #         self.document_entities = sorted_entities
+    #         self.__fill_entities_list(sorted_entities)
+    # 
+    #     self.__draw_annotation()
+    #     self.HighlightPe((entity_type, entity))
+    #
+    # def ShowTempAnnotation(self):
+    #     self.__draw_annotation()
+    # 
+    #     doc_id = self.re.GetDocumentNumber(self.current_doc_name)
+    #     offset_y = self.SENTENCE_OFFSET
+    #     text = self.re.GetSentencesTokens(doc_id)
+    # 
+    #     entity_type = self.pe_type.get()
+    #     entity = {SOURCE_ENTITY_TYPE:   self.pe_type.get(),
+    #               SOURCE_SENTENCE_ID:   self.pe_n_sent_val.get(),
+    #               SOURCE_HEAD_TOKEN_ID: self.pe_begin_val.get(),
+    #               SOURCE_ENTITY:        text[self.pe_n_sent_val.get()][self.pe_begin_val.get():self.pe_end_val.get()]}
+    #     entity_text = f"{entity[SOURCE_ENTITY_TYPE]}| {' '.join(entity[SOURCE_ENTITY])}"
+    # 
+    #     box = self.__draw_single_annotation_box(pe_type=entity_type,
+    #                                             n_sent=entity[SOURCE_SENTENCE_ID],
+    #                                             index_begin=entity[SOURCE_HEAD_TOKEN_ID],
+    #                                             index_end=entity[SOURCE_HEAD_TOKEN_ID] + len(
+    #                                                     entity[SOURCE_ENTITY]) - 1,
+    #                                             border_width=1,
+    #                                             dash=None)
+    #     self.entities_boxes.append(box)
+    #     width = self._box_border_size.get() * 2 if self._box_border_size.get() > 1 else 5
+    #     self.canvas.itemconfig(box, {'width': width})
+    # 
+    #     self.entities_boxes.remove(box)
+    #     # self.HighlightPe((entity_type, entity))
 
-        doc_id = self.re.GetDocumentNumber(self.current_doc_name)
-        offset_y = self.SENTENCE_OFFSET
-        text = self.re.GetSentencesTokens(doc_id)
+    # def CreateNewAnnotation(self):
+    #     self.is_create_new_annotation = True
+    #     self.pe_cmb_type['values'] = PROCESS_ELEMENT_LABELS
+    #     self.pe_type.set(PROCESS_ELEMENT_LABELS[0])
+    #     self.pe_n_sent_val.set(0)
+    #     self.pe_begin_val.set(0)
+    #     self.pe_end_val.set(0)
 
-        entity_type = self.pe_type.get()
-        entity = {SOURCE_ENTITY_TYPE:   self.pe_type.get(),
-                  SOURCE_SENTENCE_ID:   self.pe_n_sent_val.get(),
-                  SOURCE_HEAD_TOKEN_ID: self.pe_begin_val.get(),
-                  SOURCE_ENTITY:        text[self.pe_n_sent_val.get()][self.pe_begin_val.get():self.pe_end_val.get()]}
-        entity_text = f"{entity[SOURCE_ENTITY_TYPE]}| {' '.join(entity[SOURCE_ENTITY])}"
+    # def DeleteEntityInRelation(self, entity_index):
+    #     #  get deteled entity
+    #     # print(entity_index)
+    #     _, deleted_entity = self.document_entities[entity_index]
+    #     for index_rel, relation in enumerate(self.document_relations):
+    #         item = relation[0]
+    #         if deleted_entity[SOURCE_ENTITY] == item[SOURCE_ENTITY] and \
+    #                 deleted_entity[SOURCE_SENTENCE_ID] == item[SOURCE_SENTENCE_ID] and \
+    #                 deleted_entity[SOURCE_HEAD_TOKEN_ID] == item[SOURCE_HEAD_TOKEN_ID]:
+    #             self.document_relations.remove(relation)
+    #             break
+    #         elif deleted_entity[SOURCE_ENTITY] == item[TARGET_ENTITY] and \
+    #                 deleted_entity[SOURCE_SENTENCE_ID] == item[TARGET_SENTENCE_ID] and \
+    #                 deleted_entity[SOURCE_HEAD_TOKEN_ID] == item[TARGET_HEAD_TOKEN_ID]:
+    #             self.document_relations.remove(relation)
+    #             break
 
-        if not (entity_type, entity) in self.document_entities:
-            self.lst_entities.insert('end', entity_text)
-            # add element to doc_and_pet
-            self.document_entities.append((entity_type, entity))
-
-            #  sort entities and reload list
-            sorted_entities = sorted(self.document_entities,
-                                     key=lambda x: (
-                                             x[1][SOURCE_SENTENCE_ID], x[1][SOURCE_HEAD_TOKEN_ID]))
-            self.document_entities = sorted_entities
-            self.__fill_entities_list(sorted_entities)
-
-        self.__draw_annotation()
-        self.HighlightPe((entity_type, entity))
-
-    def ShowTempAnnotation(self):
-        self.__draw_annotation()
-
-        doc_id = self.re.GetDocumentNumber(self.current_doc_name)
-        offset_y = self.SENTENCE_OFFSET
-        text = self.re.GetSentencesTokens(doc_id)
-
-        entity_type = self.pe_type.get()
-        entity = {SOURCE_ENTITY_TYPE:   self.pe_type.get(),
-                  SOURCE_SENTENCE_ID:   self.pe_n_sent_val.get(),
-                  SOURCE_HEAD_TOKEN_ID: self.pe_begin_val.get(),
-                  SOURCE_ENTITY:        text[self.pe_n_sent_val.get()][self.pe_begin_val.get():self.pe_end_val.get()]}
-        entity_text = f"{entity[SOURCE_ENTITY_TYPE]}| {' '.join(entity[SOURCE_ENTITY])}"
-
-        box = self.__draw_single_annotation_box(pe_type=entity_type,
-                                                n_sent=entity[SOURCE_SENTENCE_ID],
-                                                index_begin=entity[SOURCE_HEAD_TOKEN_ID],
-                                                index_end=entity[SOURCE_HEAD_TOKEN_ID] + len(
-                                                        entity[SOURCE_ENTITY]) - 1,
-                                                border_width=1,
-                                                dash=None)
-        self.entities_boxes.append(box)
-        width = self._box_border_size.get() * 2 if self._box_border_size.get() > 1 else 5
-        self.canvas.itemconfig(box, {'width': width})
-
-        self.entities_boxes.remove(box)
-        # self.HighlightPe((entity_type, entity))
-
-    def CreateNewAnnotation(self):
-        self.is_create_new_annotation = True
-        self.pe_cmb_type['values'] = PROCESS_ELEMENT_LABELS
-        self.pe_type.set(PROCESS_ELEMENT_LABELS[0])
-        self.pe_n_sent_val.set(0)
-        self.pe_begin_val.set(0)
-        self.pe_end_val.set(0)
-
-    def DeleteEntityInRelation(self, entity_index):
-        #  get deteled entity
-        # print(entity_index)
-        _, deleted_entity = self.document_entities[entity_index]
-        for index_rel, relation in enumerate(self.document_relations):
-            item = relation[0]
-            if deleted_entity[SOURCE_ENTITY] == item[SOURCE_ENTITY] and \
-                deleted_entity[SOURCE_SENTENCE_ID] == item[SOURCE_SENTENCE_ID] and \
-                deleted_entity[SOURCE_HEAD_TOKEN_ID] == item[SOURCE_HEAD_TOKEN_ID]:
-                self.document_relations.remove(relation)
-                break
-            elif deleted_entity[SOURCE_ENTITY] == item[TARGET_ENTITY] and \
-                deleted_entity[SOURCE_SENTENCE_ID] == item[TARGET_SENTENCE_ID] and \
-                deleted_entity[SOURCE_HEAD_TOKEN_ID] == item[TARGET_HEAD_TOKEN_ID]:
-                self.document_relations.remove(relation)
-                break
-
-    def DeleteEntityAnnotation(self):
-        if self.lst_entities.curselection():
-            self.DeleteEntityInRelation(self.lst_entities.curselection()[0])
-            self.document_entities.remove(self.document_entities[self.lst_entities.curselection()[0]])
-            # self.lst_entities.delete(self.lst_entities.curselection()[0])
-            self.__fill_entities_list(self.document_entities)
-            self.__fill_relation_list(self.document_relations)
-            self.__draw_annotation()
+    # def DeleteEntityAnnotation(self):
+    #     if self.lst_entities.curselection():
+    #         self.DeleteEntityInRelation(self.lst_entities.curselection()[0])
+    #         self.document_entities.remove(self.document_entities[self.lst_entities.curselection()[0]])
+    #         # self.lst_entities.delete(self.lst_entities.curselection()[0])
+    #         self.__fill_entities_list(self.document_entities)
+    #         self.__fill_relation_list(self.document_relations)
+    #         self.__draw_annotation()
 
     def EntitiesListChanged(self, *event):
         self.__draw_annotation()
@@ -1021,29 +1016,29 @@ class GenerateGoldStandard(tk.Frame):
         # self.__draw_annotation()
         if self.lst_entities.curselection():
             ind = self.entities_boxes[self.lst_entities.curselection()[0]]
-            width = self._box_border_size.get() * 2 if self._box_border_size.get()>1 else 5
+            width = self._box_border_size.get() * 2 if self._box_border_size.get() > 1 else 5
             self.canvas.itemconfig(ind, {'width': width})
-
-    def CheckAnnotationClash(self):
-        #  check that the annotations in the sentence do not clash together, so there are not annotations that overlap
-
-        # generate new index of the entity as a list of index from begin to end
-        entity_to_validate = [n for n in range(self.pe_begin_val.get(), self.pe_end_val.get())]
-        entitites_in_sentence = list()
-
-        sentence_entities = list()
-        for ent in self.lst_entities.get(0, 'end'):
-            pe_label = ent[0]
-            n_sent_ent = ent[1]
-
-            if self.pe_n_sent_val.get() == n_sent_ent and \
-                    ent != self.lst_entities.get(self.lst_entities.curselection()[0]):
-                entitites_in_sentence.append([x for x in range(ent[2], ent[3] + 1)])  # ent)
-
-        for ent in entitites_in_sentence:
-            if set(entity_to_validate).intersection(set(ent)):
-                return True
-        return False
+    # 
+    # def CheckAnnotationClash(self):
+    #     #  check that the annotations in the sentence do not clash together, so there are not annotations that overlap
+    # 
+    #     # generate new index of the entity as a list of index from begin to end
+    #     entity_to_validate = [n for n in range(self.pe_begin_val.get(), self.pe_end_val.get())]
+    #     entitites_in_sentence = list()
+    # 
+    #     sentence_entities = list()
+    #     for ent in self.lst_entities.get(0, 'end'):
+    #         pe_label = ent[0]
+    #         n_sent_ent = ent[1]
+    # 
+    #         if self.pe_n_sent_val.get() == n_sent_ent and \
+    #                 ent != self.lst_entities.get(self.lst_entities.curselection()[0]):
+    #             entitites_in_sentence.append([x for x in range(ent[2], ent[3] + 1)])  # ent)
+    # 
+    #     for ent in entitites_in_sentence:
+    #         if set(entity_to_validate).intersection(set(ent)):
+    #             return True
+    #     return False
 
     def __reset_canvas(self):
         self.canvas.delete('all')
@@ -1190,11 +1185,10 @@ class GenerateGoldStandard(tk.Frame):
         for doc_name in pet_entities:
             for n_entity, entity in enumerate(pet_entities[doc_name]):
                 # manual correction to fix doc-2.1 activity 'O'
-                if doc_name=='doc-2.1':
+                if doc_name == 'doc-2.1':
                     if entity[0] == 'O':
                         entity[0] = ACTIVITY
                 pet_entities[doc_name][n_entity] = tuple(entity)
-
 
         self.pet_entities = pet_entities
 
@@ -1204,7 +1198,7 @@ class GenerateGoldStandard(tk.Frame):
         for doc_name in sorted(self.pet_relations.keys()):
             self.lst_documents.insert('end', doc_name)
 
-    def GenerateGoldStandard(self):
+    def PETVisualizer(self):
         raise NotImplemented("to be implemented")
 
     def OpenCloseLateral(self):
@@ -1286,118 +1280,6 @@ class GenerateGoldStandard(tk.Frame):
             self.selection_lst_relations_annotations -= 1
             self.lst_relations.select_set(self.selection_lst_relations_annotations)
             self.HighlightRelation()
-
-    def _generate_fine_tune_dfg_data(self, *event):
-        # def _is_source_activity(relation):
-        #     return relation[SOURCE_ENTITY_TYPE] == ACTIVITY
-        # def _is_target_activity(relation):
-        #     return relation[TARGET_ENTITY_TYPE] == ACTIVITY
-        # def _get_source(relation):
-        #     return (relation[SOURCE_SENTENCE_ID],
-        #             relation[SOURCE_HEAD_TOKEN_ID])
-        # def _get_target(relation):
-        #     return (relation[TARGET_SENTENCE_ID],
-        #             relation[TARGET_HEAD_TOKEN_ID])
-
-        TXT_END_SEP = '\n ---'
-        COMPLETITION_END_SEP = '\n END'
-        filename = f"GPTfinetuning/PETdfgdata.jsonl"
-        import json
-        seed = 23
-        import random
-        random.seed(23)
-        docnames = list(self.pet_relations.keys())
-        random.shuffle(docnames)
-        with open("./documens-names-dfg.txt", 'w') as fdocs:
-            with open(filename, 'w') as f:
-                for n_doc, doc_name in enumerate(docnames):
-                    fdocs.write(f"{n_doc + 1}| {doc_name}\n")
-
-                    process_relations = list()
-                    # dfg_relations_tmp = list()
-                    nodes_to_eliminate = set()
-
-                    for (relation, rel_type) in self.pet_relations[doc_name]:
-                        if rel_type in [FLOW, SAME_GATEWAY]:
-                            process_relations.append((relation, rel_type))
-                            # dfg_relations_tmp.append(relation)
-                            if not _is_source_activity(relation):
-                                nodes_to_eliminate.add(_get_source(relation))
-                            if not _is_target_activity(relation):
-                                nodes_to_eliminate.add(_get_target(relation))
-
-                    process_graph_ = CreateGraph(process_relations, doc_name)
-                    nodes_to_eliminate = list(nodes_to_eliminate)
-                    # now, decode nodes_to_eliminate
-                    for node_to_del in nodes_to_eliminate:
-                        g0 = process_graph_.copy()
-                        #  for any node_to_del in relation substitute with predecessors and successors
-                        for edge in g0.edges(data=True):
-                            source, target, edge_attrs = edge
-                            print(f"{source=}")
-                            if source == node_to_del:
-                                for predecessor in list(g0.predecessors(node_to_del)):
-                                    print(predecessor)
-                                    process_graph_.add_edge(predecessor, target, attrs=edge_attrs)
-                                process_graph_.remove_edge(source, target)
-                                # process_graph_.remove_node(source)
-
-                            if target == node_to_del:
-                                for successor in list(g0.successors(node_to_del)):
-                                    process_graph_.add_edge(source, successor, attrs=edge_attrs['attrs'])
-                                process_graph_.remove_edge(source, target)
-                                # process_graph_.remove_node(target)
-                    for node_to_del in nodes_to_eliminate:
-                        process_graph_.remove_node(node_to_del)
-
-                    for edge in process_graph_.edges(data=True):
-                        source, target, attrs = edge
-                        source_txt = process_graph_.nodes[source]['attrs']['label']
-                        target_txt = process_graph_.nodes[target]['attrs']['label']
-
-                        print(f"{source_txt} -> {target_txt}")
-
-                    graph_filename=f'{doc_name}.dot'
-                    nx.nx_agraph.write_dot(process_graph_, graph_filename)
-                    doc_id = self.re.GetDocumentNumber(doc_name)
-                    text_tokens = self.re.GetSentencesTokens(doc_id)
-                    text = ' '.join([' '.join(sent) for sent in text_tokens])
-                    text_end = f"{text}{TXT_END_SEP}"
-
-                    #  start trying with nodes
-                    # graph_txt = str(graph_.nodes(data=True))
-
-                    completition_txt = list()
-                    #  ELEMENTS
-                    completition_txt.append("Activity:\n")
-                    for node in process_graph_.nodes(data=True):
-                        # print(node)
-                        n_sent, head_word = node[0]
-                        node_coord = node[0]
-                        # node_type = node[1]['attrs']['type']
-                        node_label = node[1]['attrs']['label']
-                        node_txt = f"{node_coord} | {node_label}"
-                        completition_txt.append(node_txt)
-
-                    #  RELATIONS
-                    completition_txt.append("\nDFG Relations:")
-                    for edge in process_graph_.edges():
-                        # print(edge)
-                        source = edge[0]
-                        target = edge[1]
-                        # rel_type = edge[2]['attrs']['type']
-                        edge_txt = f"{source} -> {target}"
-                        completition_txt.append(edge_txt)
-
-                    completition_txt.append(f"{COMPLETITION_END_SEP}")
-                    completition_txt = '\n'.join(completition_txt)
-                    item = {"prompt": text_end, "completion": f" {completition_txt}"}
-
-                    f.write(json.dumps(item) + "\n")
-
-
-                print(f"{filename} saved")
-
     def _get_source_node(self, relation):
         return (relation[SOURCE_SENTENCE_ID], relation[SOURCE_HEAD_TOKEN_ID])
 
@@ -1418,7 +1300,7 @@ class GenerateGoldStandard(tk.Frame):
         """
 
         performs = list()
-        follows =list()
+        follows = list()
         #  get process graph as it is
         nodes_to_fix = set()
         preceed = defaultdict(set)
@@ -1446,10 +1328,10 @@ class GenerateGoldStandard(tk.Frame):
 
         #  fix nodes
         g0 = CreateGraph(follows, doc_name)
-        nodes_to_fix = sorted(nodes_to_fix, key=lambda x:(x[0], x[1]))
+        nodes_to_fix = sorted(nodes_to_fix, key=lambda x: (x[0], x[1]))
         return g0, nodes_to_fix
 
-    def _get_dfg(self, g0, nodes_to_fix, doc_name,label_type='origold'):
+    def _get_dfg(self, g0, nodes_to_fix, doc_name, label_type='origold'):
         """
 
         :param g0:
@@ -1462,13 +1344,14 @@ class GenerateGoldStandard(tk.Frame):
             g0 = simplify_graph_with_predicate(g0, lambda node: node_ == node)
 
         dfg_relations = list()
-        gold_data = {tuple([int(ele) for ele in k.split(' ')]): v for (k,v) in readjson(f"../{PET_GOLD_ACTIVITY_LABEL}")[doc_name].items()}
+        gold_data = {tuple([int(ele) for ele in k.split(' ')]): v for (k, v) in
+                     readjson(f"../{PET_GOLD_ACTIVITY_LABEL}")[doc_name].items()}
         for node in g0.nodes:
             if label_type == 'original':
                 g0.nodes[node]['attrs']['label'] = f"{g0.nodes[node]['attrs']['label']}"
-            elif label_type=='gold':
+            elif label_type == 'gold':
                 g0.nodes[node]['attrs']['label'] = f"{gold_data[node]}"
-            elif label_type=='origold':
+            elif label_type == 'origold':
                 g0.nodes[node]['attrs']['label'] = f"{gold_data[node]}\n({g0.nodes[node]['attrs']['label']})"
 
         for (source, target) in g0.edges:
@@ -1480,11 +1363,26 @@ class GenerateGoldStandard(tk.Frame):
     def _get_dfg_graph(self, doc_name, label_type='origold'):
         g0, nodes_to_fix = self._get_experiment_graph(self.pet_relations[doc_name], doc_name)
         return self._get_dfg(g0, nodes_to_fix, doc_name, label_type)
+    # 
+    # def _generate_finetune_activity_element(self, *event):
+    #     filename = fd.asksaveasfile()
+    #     if filename.name:
+    #         #  generate data
+    # 
+    #         dfg_relations = dict()
+    #         for doc_name in self.pet_relations:
+    #             g0, dfg = self._get_dfg_graph(doc_name, label_type='original')
+    #             dfg_relations[doc_name] = dfg
+    #             #  save graph in .dot
+    #             # nx.nx_agraph.write_dot(g0, f'./graphs/{doc_name}.dot')
+    # 
+    #         savejson(dfg_relations, filename)
+    #         print("data saved")
 
     def _save_json_dfg_relations(self, *event):
         dfg_relations = dict()
         for doc_name in self.pet_relations:
-            g0, dfg = self._get_dfg_graph(doc_name,label_type='gold')
+            g0, dfg = self._get_dfg_graph(doc_name, label_type='gold')
             dfg_relations[doc_name] = dfg
             #  save graph in .dot
             nx.nx_agraph.write_dot(g0, f'./graphs/{doc_name}.dot')
@@ -1495,7 +1393,7 @@ class GenerateGoldStandard(tk.Frame):
     def _save_dfg_data(self, *event):
         dfg_relations = dict()
         for doc_name in self.pet_relations:
-            g0, dfg = self._get_dfg_graph(doc_name,label_type='gold')
+            g0, dfg = self._get_dfg_graph(doc_name, label_type='gold')
             dfg_relations[doc_name] = dfg
         # filename = dialog
         savejson(dfg_relations, "../../dfg_relations.json")
@@ -1520,77 +1418,13 @@ class GenerateGoldStandard(tk.Frame):
         ShowGraphGUI(showgraphapp, graph_to_plot)
         showgraphapp.mainloop()
 
-    def _generate_all_graphs_nx(self, *event):
-        raise NotImplemented()
-
-    def _generate_all_graphs_nxELEREL(self, *event):
-        TXT_END_SEP = '\n ---'
-        COMPLETITION_END_SEP = '\n END'
-        filename = f"GPTfinetuning/PETgraphdata.jsonl"
-        import json
-        seed = 23
-        import random
-        random.seed(23)
-        docnames = list(self.pet_relations.keys())
-        random.shuffle(docnames)
-        with open("GPTfinetuning/documens_names.txt", 'w') as fdocs:
-            with open(filename, 'w') as f:
-                for n_doc, doc_name in enumerate(docnames):
-                    fdocs.write(f"{n_doc+1}| {doc_name}\n")
-
-                    graph_ = CreateGraph(self.pet_relations[doc_name], doc_name)
-                    graph_filename = f"./tmpgraphs/{graph_.name}.dot"
-                    nx.nx_agraph.write_dot(graph_, graph_filename)
-                    doc_id = self.re.GetDocumentNumber(doc_name)
-                    text_tokens = self.re.GetSentencesTokens(doc_id)
-                    text = ' '.join([' '.join(sent) for sent in text_tokens])
-                    text_end = f"{text}{TXT_END_SEP}"
-
-                    #  start trying with nodes
-                    # graph_txt = str(graph_.nodes(data=True))
-
-                    completition_txt = list()
-                    #  ELEMENTS
-                    completition_txt.append("Process Elements:\n")
-                    for node in graph_.nodes(data=True):
-                        # print(node)
-                        n_sent, head_word = node[0]
-                        node_coord = node[0]
-                        node_type = node[1]['attrs']['type']
-                        node_label = node[1]['attrs']['label']
-                        node_txt = f"{node_coord} | {node_type} | {node_label}"
-                        completition_txt.append(node_txt)
-
-                    #  RELATIONS
-                    completition_txt.append("\nProcess Relations:\n")
-                    for edge in graph_.edges(data=True):
-                        # print(edge)
-                        source = edge[0]
-                        target = edge[1]
-                        rel_type = edge[2]['attrs']['type']
-                        edge_txt = f"{source} | {target} | {rel_type}"
-                        completition_txt.append(edge_txt)
-
-                    completition_txt.append(f"{COMPLETITION_END_SEP}")
-                    completition_txt = '\n'.join(completition_txt)
-                    item = {"prompt": text_end, "completion": f" {completition_txt}"}
-
-                    f.write(json.dumps(item) + "\n")
-        print(f"{filename} saved")
-
-if __name__ == '__main__':
+def Visualizer():
     import sys
-
-    dataset_filename = '/Users/patrizio/Documents/PhD/AnnotationVisualizer/DEVELOPMENT/datasets/LREC_predicted.sopap_dataset'
-    # dataset_filename_test = '/Users/patrizio/Documents/PhD/AnnotationVisualizer/DEVELOPMENT/datasets/GS_TEST.sopap_dataset'
-    # from GoldStandardStatistics import GoldStandardStatistics
-    #
-    # dataset = GoldStandardStatistics()
-    # dataset.LoadDataset(filename=dataset_filename)
     window = tk.Tk()
-    # window.geometry('950x600')
-    program = GenerateGoldStandard(window)
-    # Start the GUI event loop
+    program = PETVisualizer(window)
     program.mainloop()
     program.quit()
     sys.exit()
+
+if __name__ == '__main__':
+    Visualizer()
