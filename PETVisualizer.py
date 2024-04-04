@@ -142,7 +142,7 @@ class PETVisualizerGUI(tk.Frame):
         self.is_create_new_annotation = False
         self.is_create_new_relation = False
 
-        self.entities_dict = dict()  # {(n_sent, start, end): pe_type}
+        # self.entities_dict = dict()  # {(n_sent, start, end): pe_type}
 
         self._font_size = tk.IntVar()
         self._font_size.set(15)
@@ -389,7 +389,7 @@ class PETVisualizerGUI(tk.Frame):
                   command=self.LoadPET).pack(side='top', fill='x')
 
         tk.Button(frmlbl_doc_op,
-                  text='Export Gold Standard Data',
+                  text='Export Data',
                   anchor='w',
                   command=self.ExportData).pack(side='top', fill='x')
 
