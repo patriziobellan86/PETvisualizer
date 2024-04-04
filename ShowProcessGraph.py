@@ -11,6 +11,7 @@ from matplotlib.backends.backend_tkagg import NavigationToolbar2Tk
 from matplotlib.figure import Figure
 from petreader.labels import *
 import mplcursors
+from Labels import *
 
 COLORS = {
         ACTIVITY:                       'green',

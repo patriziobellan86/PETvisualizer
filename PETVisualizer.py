@@ -2,19 +2,20 @@
 # -*- coding: utf-8 -*-
 """
 @author: Patrizio Bellan
-@contact: patrizio.bellan@gmail.com
-@license MIT
-@summary: This file contains the GUI for the PET Visualizer
+@email: patrizio.bellan@gmail.com
+
 
 """
+import os
 from copy import deepcopy
 import tkinter as tk
 import tkinter.messagebox
 import tkinter.ttk as ttk
 import tkinter.font as tkFont
 from collections import defaultdict
+from pathlib import Path
 from tkinter import filedialog as fd
-from Labels import *
+from Labels import * # from PET_TEST.ExperimentLabels import *
 from utility import readjson
 import networkx as nx
 import json
@@ -103,7 +104,7 @@ def simplify_graph_with_predicate(G: nx.Graph, node_removal_predicate: callable)
     return g
 
 
-class GenerateGoldStandard(tk.Frame):
+class PETVisualizerGUI(tk.Frame):
     pe_labels_dict_plot = {k: k for k in PE_LABELS}
     SENTENCE_OFFSET = 60
     WORD_OFFSET = 20
@@ -113,7 +114,8 @@ class GenerateGoldStandard(tk.Frame):
         self.parent = parent
         self.parent.geometry('1450x1100')
         self.parent.title('PET Visualizer')
-        
+        # self.parent.tk.call('wm', 'iconphoto', self.parent._w, tk.PhotoImage(file='icons/wolfgold.png'))
+
         # init variables
         self.__init__varialbles__()
 
@@ -191,6 +193,11 @@ class GenerateGoldStandard(tk.Frame):
                 self.pet_relations[self.current_doc_name] = self.document_relations
 
     def _load_pet_dataset(self):
+        # for doc_name in tqdm([
+        #                              'doc-1.1']):  # , 'doc-1.2', 'doc-1.3']): #self.re.GetDocumentNames(), desc='loading pet dataset', dynamic_ncols=True):
+        #
+        #
+        #     print(doc_name)
         for doc_name in tqdm(self.re.GetDocumentNames(), desc='loading pet dataset', dynamic_ncols=True):
             doc_id = self.re.GetDocumentNumber(doc_name)
             # get data
@@ -421,27 +428,27 @@ class GenerateGoldStandard(tk.Frame):
                                     command=self.__draw_annotation
                                     )
         self.sclTextFont.pack(side='top')
-        frmlbl_graph = tk.Frame(self.frmCommands)
-        frmlbl_graph.pack(side='left', fill='x')
-        tk.Button(frmlbl_graph,
-                  text='Save JSON DFG for In-context Exp.',
-                  command=self._save_json_dfg_relations).pack(side='top', fill='x')
-
-        tk.Button(frmlbl_graph,
-                  text='Show DFG for In-context Exp.',
-                  command=self._show_dfg_graph_for_experiments).pack(side='top', fill='x')
-
-        tk.Button(frmlbl_graph, text='generate graphs', command=self._generate_all_graphs_nx).pack()
-        tk.Button(frmlbl_graph, text='generate fine-tune-data', command=self._generate_all_graphs_nxELEREL).pack()
-        tk.Button(frmlbl_graph, text='generate fine-tune-dfg-data', command=self._generate_fine_tune_dfg_data).pack()
-
-        frmlbl_graph_f = tk.LabelFrame(self.frmCommands, text='fine tuning')
-        frmlbl_graph_f.pack(side='left', fill='x')
-        tk.Button(frmlbl_graph_f, text='CRF IOB2 data', command=self._generate_crf_iob2_data).pack()
-
-        tk.Button(frmlbl_graph_f, text='generate activity element',
-                  command=self._generate_finetune_activity_element).pack()
-        tk.Button(frmlbl_graph_f, text='fine-tune-data', command=self._generate_all_graphs_nxELEREL).pack()
+        # frmlbl_graph = tk.Frame(self.frmCommands)
+        # frmlbl_graph.pack(side='left', fill='x')
+        # tk.Button(frmlbl_graph,
+        #           text='Save JSON DFG for In-context Exp.',
+        #           command=self._save_json_dfg_relations).pack(side='top', fill='x')
+        # 
+        # tk.Button(frmlbl_graph,
+        #           text='Show DFG for In-context Exp.',
+        #           command=self._show_dfg_graph_for_experiments).pack(side='top', fill='x')
+        # 
+        # tk.Button(frmlbl_graph, text='generate graphs', command=self._generate_all_graphs_nx).pack()
+        # tk.Button(frmlbl_graph, text='generate fine-tune-data', command=self._generate_all_graphs_nxELEREL).pack()
+        # tk.Button(frmlbl_graph, text='generate fine-tune-dfg-data', command=self._generate_fine_tune_dfg_data).pack()
+        # 
+        # frmlbl_graph_f = tk.LabelFrame(self.frmCommands, text='fine tuning')
+        # frmlbl_graph_f.pack(side='left', fill='x')
+        # tk.Button(frmlbl_graph_f, text='CRF IOB2 data', command=self._generate_crf_iob2_data).pack()
+        # 
+        # tk.Button(frmlbl_graph_f, text='generate activity element',
+        #           command=self._generate_finetune_activity_element).pack()
+        # tk.Button(frmlbl_graph_f, text='fine-tune-data', command=self._generate_all_graphs_nxELEREL).pack()
 
         ####### lateral frame #####
         self.lateral_frame = tk.Frame(self.Frame)
@@ -1181,15 +1188,27 @@ class GenerateGoldStandard(tk.Frame):
     ################################
 
     def ExportData(self):
+        filename = tk.filedialog.asksaveasfilename(defaultextension=".jsonl",
+                                                   filetypes=[("jsonl files", "*.jsonl")])
+        if not filename:
+            return
+
+        filename = Path(filename).name
         if self.document_entities and self.document_relations:
             self.pet_relations[self.current_doc_name] = self.document_relations
             self.pet_entities[self.current_doc_name] = self.document_entities
 
-        savejson(self.pet_relations, 'pet-relations.json')
-        savejson(self.pet_entities, 'pet-entities.json')
+        savejson(self.pet_relations, f'{filename}-relations.json')
+        savejson(self.pet_entities, f'{filename}-entities.json')
         print("data saved")
 
     def ExportDataHG(self):
+        filename = tk.filedialog.asksaveasfilename(defaultextension=".json",
+                                                   filetypes=[("json files", "*.json")])
+        if not filename:
+            return
+
+        filename = Path(filename).name
         if self.document_entities and self.document_relations:
             self.pet_relations[self.current_doc_name] = self.document_relations
             self.pet_entities[self.current_doc_name] = self.document_entities
@@ -1229,8 +1248,9 @@ class GenerateGoldStandard(tk.Frame):
                                  "ner-tags":      tags}
                 entities_hg.append(sentence_item)
 
-        # save in jsonl
-        with open('PETv1.1-entities.jsonl', 'w') as f:
+        # save jsons
+        # savejson(entities_hg, f'{filename}-entities.jsonl')
+        with open(f'{filename}-entities.jsonl', 'w') as f:
             for item in entities_hg:
                 f.write(json.dumps(item) + "\n")
 
@@ -1283,18 +1303,30 @@ class GenerateGoldStandard(tk.Frame):
             relations_hg.append(relation_item)
 
         # save in jsonl
-        savejson(relations_hg, 'PETv1.1-relations.json')
-        with open('PETv1.1-relations.jsonl', 'w') as f:
+        # savejson(relations_hg, f'{filename}-relations.json')
+        with open(f'{filename}-relations.jsonl', 'w') as f:
             for item in relations_hg:
                 f.write(json.dumps(item) + "\n")
 
+        tk.messagebox.showinfo("Export Data", "Data exported")
 
-        print("data saved")
+        # print("data saved")
 
     def LoadJsonData(self):
+        entities_filename = tk.filedialog.askopenfilename(defaultextension=".json",
+                                                          initialdir=os.getcwd(),
+                                                          title="Please select Entities JSON data",
+                                                          filetypes=[("json files", "*.json")])
+        relations_filename = tk.filedialog.askopenfilename(defaultextension=".json",
+                                                           initialdir=os.getcwd(),
+                                                           title="Please select Relations JSON data",
+                                                           filetypes=[("json files", "*.json")])
+        if not entities_filename or not relations_filename:
+            return
+
         self.__reset_canvas()
-        self.pet_relations = readjson('pet-relations.json')
-        pet_entities = readjson('pet-entities.json')
+        self.pet_relations = readjson(relations_filename)  # 'pet-relations.json')
+        pet_entities = readjson(entities_filename)  # 'pet-entities.json')
         # convert entities items from list to tuple
         for doc_name in pet_entities:
             for n_entity, entity in enumerate(pet_entities[doc_name]):
@@ -1394,116 +1426,6 @@ class GenerateGoldStandard(tk.Frame):
             self.selection_lst_relations_annotations -= 1
             self.lst_relations.select_set(self.selection_lst_relations_annotations)
             self.HighlightRelation()
-
-    def _generate_fine_tune_dfg_data(self, *event):
-        # def _is_source_activity(relation):
-        #     return relation[SOURCE_ENTITY_TYPE] == ACTIVITY
-        # def _is_target_activity(relation):
-        #     return relation[TARGET_ENTITY_TYPE] == ACTIVITY
-        # def _get_source(relation):
-        #     return (relation[SOURCE_SENTENCE_ID],
-        #             relation[SOURCE_HEAD_TOKEN_ID])
-        # def _get_target(relation):
-        #     return (relation[TARGET_SENTENCE_ID],
-        #             relation[TARGET_HEAD_TOKEN_ID])
-
-        TXT_END_SEP = '\n ---'
-        COMPLETITION_END_SEP = '\n END'
-        filename = f"GPTfinetuning/PETdfgdata.jsonl"
-
-        seed = 23
-
-        random.seed(23)
-        docnames = list(self.pet_relations.keys())
-        random.shuffle(docnames)
-        with open("./documens-names-dfg.txt", 'w') as fdocs:
-            with open(filename, 'w') as f:
-                for n_doc, doc_name in enumerate(docnames):
-                    fdocs.write(f"{n_doc + 1}| {doc_name}\n")
-
-                    process_relations = list()
-                    # dfg_relations_tmp = list()
-                    nodes_to_eliminate = set()
-
-                    for (relation, rel_type) in self.pet_relations[doc_name]:
-                        if rel_type in [FLOW, SAME_GATEWAY]:
-                            process_relations.append((relation, rel_type))
-                            # dfg_relations_tmp.append(relation)
-                            if not _is_source_activity(relation):
-                                nodes_to_eliminate.add(_get_source(relation))
-                            if not _is_target_activity(relation):
-                                nodes_to_eliminate.add(_get_target(relation))
-
-                    process_graph_ = CreateGraph(process_relations, doc_name)
-                    nodes_to_eliminate = list(nodes_to_eliminate)
-                    # now, decode nodes_to_eliminate
-                    for node_to_del in nodes_to_eliminate:
-                        g0 = process_graph_.copy()
-                        #  for any node_to_del in relation substitute with predecessors and successors
-                        for edge in g0.edges(data=True):
-                            source, target, edge_attrs = edge
-                            print(f"{source=}")
-                            if source == node_to_del:
-                                for predecessor in list(g0.predecessors(node_to_del)):
-                                    print(predecessor)
-                                    process_graph_.add_edge(predecessor, target, attrs=edge_attrs)
-                                process_graph_.remove_edge(source, target)
-                                # process_graph_.remove_node(source)
-
-                            if target == node_to_del:
-                                for successor in list(g0.successors(node_to_del)):
-                                    process_graph_.add_edge(source, successor, attrs=edge_attrs['attrs'])
-                                process_graph_.remove_edge(source, target)
-                                # process_graph_.remove_node(target)
-                    for node_to_del in nodes_to_eliminate:
-                        process_graph_.remove_node(node_to_del)
-
-                    for edge in process_graph_.edges(data=True):
-                        source, target, attrs = edge
-                        source_txt = process_graph_.nodes[source]['attrs']['label']
-                        target_txt = process_graph_.nodes[target]['attrs']['label']
-
-                        print(f"{source_txt} -> {target_txt}")
-
-                    graph_filename = f'{doc_name}.dot'
-                    nx.nx_agraph.write_dot(process_graph_, graph_filename)
-                    doc_id = self.re.GetDocumentNumber(doc_name)
-                    text_tokens = self.re.GetSentencesTokens(doc_id)
-                    text = ' '.join([' '.join(sent) for sent in text_tokens])
-                    text_end = f"{text}{TXT_END_SEP}"
-
-                    #  start trying with nodes
-                    # graph_txt = str(graph_.nodes(data=True))
-
-                    completition_txt = list()
-                    #  ELEMENTS
-                    completition_txt.append("Activity:\n")
-                    for node in process_graph_.nodes(data=True):
-                        # print(node)
-                        n_sent, head_word = node[0]
-                        node_coord = node[0]
-                        # node_type = node[1]['attrs']['type']
-                        node_label = node[1]['attrs']['label']
-                        node_txt = f"{node_coord} | {node_label}"
-                        completition_txt.append(node_txt)
-
-                    #  RELATIONS
-                    completition_txt.append("\nDFG Relations:")
-                    for edge in process_graph_.edges():
-                        # print(edge)
-                        source = edge[0]
-                        target = edge[1]
-                        # rel_type = edge[2]['attrs']['type']
-                        edge_txt = f"{source} -> {target}"
-                        completition_txt.append(edge_txt)
-
-                    completition_txt.append(f"{COMPLETITION_END_SEP}")
-                    completition_txt = '\n'.join(completition_txt)
-                    item = {"prompt": text_end, "completion": f" {completition_txt}"}
-
-                    f.write(json.dumps(item) + "\n")
-
-                print(f"{filename} saved")
 
     def _get_source_node(self, relation):
         return (relation[SOURCE_SENTENCE_ID], relation[SOURCE_HEAD_TOKEN_ID])
@@ -1736,6 +1658,15 @@ class GenerateGoldStandard(tk.Frame):
 
         print(f"{filename.name} saved")
 
+def PETVisualizer():
+    window = tk.Tk()
+    # window.geometry('950x600')
+    program = PETVisualizerGUI(window)
+    # Start the GUI event loop
+    program.mainloop()
+    program.quit()
+    sys.exit()
+
 
 if __name__ == '__main__':
     import sys
@@ -1746,10 +1677,5 @@ if __name__ == '__main__':
     #
     # dataset = GoldStandardStatistics()
     # dataset.LoadDataset(filename=dataset_filename)
-    window = tk.Tk()
-    # window.geometry('950x600')
-    program = GenerateGoldStandard(window)
-    # Start the GUI event loop
-    program.mainloop()
-    program.quit()
-    sys.exit()
+    
+    PETVisualizer()

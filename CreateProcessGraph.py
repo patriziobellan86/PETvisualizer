@@ -5,11 +5,7 @@
 """
 import networkx as nx
 from petreader.labels import *
-from Labels import *    
-
-LABEL = 'label'
-TYPE = 'type'
-
+from Labels import *
 def CreateGraph(relations: list,
                 graph_name: str) -> nx.DiGraph:
     """

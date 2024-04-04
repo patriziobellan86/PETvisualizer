@@ -1,0 +1,10 @@
+if the installation of requirements fails,
+run:
+    !pip install setuptools==65.5.0 "wheel<0.40.0"
+
+to downgrade the wheel package.
+an explanation of why can be found at:
+https://stackoverflow.com/questions/76129688/why-is-pip-install-gym-failing-with-python-setup-py-egg-info-did-not-run-succ
+
+
+

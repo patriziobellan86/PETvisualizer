@@ -126,6 +126,8 @@ RELAXABLE_ERRORS = [ADDED_RECIPIENT,
                     ADDED_NO_AD_PART,
                     REWORDING]
 
+TYPE = 'type'
+LABEL = 'label'
 
 #  error types T3
 ERROR_TYPE_NOT_AN_ACTOR_PERFORMER = 'not an actor performer'
