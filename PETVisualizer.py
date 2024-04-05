@@ -19,6 +19,7 @@ from Labels import * # from PET_TEST.ExperimentLabels import *
 from utility import readjson
 import networkx as nx
 import json
+import sys 
 
 seed = 23
 import random
@@ -114,7 +115,7 @@ class PETVisualizerGUI(tk.Frame):
         self.parent = parent
         self.parent.geometry('1450x1100')
         self.parent.title('PET Visualizer')
-        # self.parent.tk.call('wm', 'iconphoto', self.parent._w, tk.PhotoImage(file='icons/wolfgold.png'))
+        self.parent.tk.call('wm', 'iconphoto', self.parent._w, tk.PhotoImage(file='./wolfgold.png'))
 
         # init variables
         self.__init__varialbles__()
