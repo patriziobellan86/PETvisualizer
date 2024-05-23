@@ -1,3 +1,35 @@
+Metadata-Version: 2.1
+Name: petannotationvisualizer
+Version: 1.2.0
+Summary: A visualization tool for the PET dataset hosted on Huggingface.
+Home-page: https://pdi.fbk.eu/pet-dataset
+Author: Patrizio Bellan
+Author-email: patrizio.bellan@gmail.com
+Maintainer: Patrizio Bellan
+Maintainer-email: patrizio.bellan@gmail.com
+License: MIT
+Keywords: PET visualizer,huggingface,PET,dataset,process extraction from text,natural language processing,nlp,business process management,bpm
+Platform: Any
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Natural Language :: English
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Intended Audience :: Information Technology
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering
+Classifier: Topic :: Utilities
+Description-Content-Type: text/markdown
+
 PET Visualizer 
 ==============
 PET Visualizer is a tool for visualizing the [PET Dataset](https://huggingface.co/datasets/patriziobellan/PET)
@@ -24,7 +56,7 @@ The main goal of PET Visualizer is to provide a way to visualize the dataset, ma
 The tool supports several visualization options and can be easily integrated into existing workflows or extend the function implemented. During the system presentation, we demonstrate the effectiveness of the tool and its potential impact in improving process extraction from text tas
 
 ---
-![PET Visualizers GUI](figures/PETVisualizerscreenshot1.jpg)
+![PET Visualizers GUI](PETvisualizer/figures/PETVisualizerscreenshot1.jpg)
 *Fig.1 A screenshot of the PET Visualizer GUI.*
 
 We present PET Visualizer, a tool developed to graphically visualize process model document annotations and the representation of the process model in the form of labeled graphs. For this first version of the tool, we concentrate on providing a graphical representation of the annotations of the [PET dataset](https://huggingface.co/datasets/patriziobellan/PET), the unique gold-standard dataset freely available specifically for process information extraction tasks.  The PET dataset is a corpus of human-annotated process model descriptions. It consists of a collection of 45 descriptions annotated with process model elements and relations at the textual level. 
@@ -42,7 +74,7 @@ Along with this, a list box shows the names of the documents annotated in the PE
 		At the bottom side, there are the common *matplotlib* commands to navigate and export the graph image.
 		An example of graph visualization is shown in *Fig.2*.
 - *Load Json Data* Loads a local dataset. The local dataset is split into two JSON files: an *entities* annotation file and a *relations* annotation file. This command is straightforward but makes the dataset loading operation faster than loading from the HuggingFace repository every time.
-![PET Visualizers GUI - process graph](figures/PETVisualizerscreenshootgraph.jpg)
+![PET Visualizers GUI - process graph](PETvisualizer/figures/PETVisualizerscreenshootgraph.jpg)
 *Fig.2 A screenshot of the PET Visualizer - Process Graph visualization.*
 
 Finally, in the last part of the command bar, we implemented two scroll controls that allow users to set the size of the annotation lines and the font size of the text. These two controls would increase *accessibility* of our tool.
@@ -53,7 +85,7 @@ On the right-hand side of the GUI, the *Annotation Menu* allows users to create,
  
 *Entities Menu*
 ---
-![PET Visualizers GUI - Entities Menu](figures/PETVisualizermenuentities.jpg)
+![PET Visualizers GUI - Entities Menu](PETvisualizer/figures/PETVisualizermenuentities.jpg)
 *Fig.3 Entities menu.*
 
 The Entities Menu card, shown in *Fig.3*, lists all the process model element annotations of the selected document.
@@ -70,7 +102,7 @@ At the bottom part of the card, there are the annotation commands:
 
 *Relations Menu*
 ---
-![PET Visualizers GUI - Relations Menu](figures/PETVisualizermenurelations.jpg)
+![PET Visualizers GUI - Relations Menu](PETvisualizer/figures/PETVisualizermenurelations.jpg)
 *Fig.4 Relations menu.*
  
 
@@ -92,7 +124,7 @@ At the bottom part of the card, there are three annotation commands:
 
 ***Text Area*** part lies in the central part of the GUI. It shows the text of a document and its annotations. PET elements are highlighted in boxes, while PET relations connect PET elements using labeled arrows. Boxes and relation arrows follow the color schema reported in *Fig.5*.
 
-![Color Schema](figures/colorschema.jpg)
+![Color Schema](PETvisualizer/figures/colorschema.jpg)
 *Fig.5 Relations menu.*
 
 
